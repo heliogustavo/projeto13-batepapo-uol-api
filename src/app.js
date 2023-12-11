@@ -55,8 +55,13 @@ try{
     }
   })
 
-app.get('/', (req, res) => {
-  res.send('');    
+app.get('/participants', async(req, res) => {
+  try{
+  const participants = await db.collection('participants').find().toArray()
+  res.send(participants)
+  }catch(err){
+    res.status(500).send(err.message)
+  }
 });
 
 app.listen(port, () => {
