@@ -3,6 +3,7 @@ import express from "express";
 import dotenv from "dotenv";
 import { MongoClient } from "mongodb";
 import Joi from "joi";
+import dayjs from "dayjs";
 
 const app = express()
 
@@ -27,15 +28,29 @@ try{
   const participantschema = Joi.object({name: Joi.string().required()})
 
   //endpoints
-  app.post("", async(req, res)=> {
+  app.post("/participants", async(req, res)=> {
     const {name} = req.body
     const validation  = participantschema.validate(req.body, {abortEarly:false})
     if(validation.error){
      return  res.status(422).send(validation.error.details.map(detail =>detail.message))
     }
     try{
+      const participant = await db.collection('participants').findOne({name})
+      if(participant) return res.senStatus(409)
 
-    }catch{
+      const timestamp = Date.now()
+      await db.collection('participant').insertOne({name, lastStatus: timestamp})
+      const message = { 
+        from: name,
+        to: 'Todos',
+        text: 'entra na sala...',
+        type: 'status',
+        time: dayjs(timestamp).format('HH:mm:ss')
+    }
+      await db.collection('participant').insertOne({message})
+      res.sendStatus(201)
+
+    }catch(err){
       res.status(500).send(err.message)
     }
   })
