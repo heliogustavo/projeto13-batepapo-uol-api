@@ -126,19 +126,47 @@ app.get("/status", async (req, res) => {
         if (!participant) return res.sendStatus(404)
         //em updateOne() recebe-se duas coisas: #Qual item do DB vc quer atualizar e #Como e O que vc quer modificar/Atribuir nele.
         const result = await db.collection('participants').updateOne(
-            { name: user }, {$set: {lastStatus: Date.now()}}
+            { name: user }, { $set: { lastStatus: Date.now() } }
         )
         // O updateOne() também possiu uma propriedade que conta quantos itens foram  
         // modificados: result.matchedCount. Então você não precisa criar uma nova solicitação  
         // somente para ver se o usuário existe, basta somente saber se ao tentar atualizar um   
         // item no DB, algo foi ou não modificado. Se nada for modificado, o contador será 0 
         // e retornará o erro(404) 
-        if(result.matchedCount === 0)  return res.sendStatus(404)
+        if (result.matchedCount === 0) return res.sendStatus(404)
 
         res.sendStatus(200)
 
     } catch (err) {
         res.status(500).send(err.message)
+    }
+})
+
+setInterval(async () => {
+    const tenSecondsAgo = Date.now() - 10000
+    try {
+        const inactiveUsers = await db.collection('participantes')
+            // no filtro .find() a propriedade "$lte:" indica maior ou igual "=>" e "$lt" indica "=" 
+            .find({ lastStatus: { $lt: tenSecondsAgo } })
+            .toArray()
+
+        if (inactiveUsers.length > 0) {
+            const messages = inactiveUsers.map(user => {
+                return {
+                    from: user.name,
+                    to: 'Todos',
+                    text: 'sai da sala...',
+                    type: 'status',
+                    time: dayjs().format('HH:mm:ss')
+                }
+            }
+            )
+        }
+            await db.collection('messages').insertMany(messages)
+            await db.collection('participants').deleteMany({ lastStatus: { $lt: tenSecondsAgo } })
+    } catch (err) {
+            console.log(err)
+        //se usa console.log() em vez de req/res pq não é uma requisição/endPoint e sim uma função comum
     }
 })
 
