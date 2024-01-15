@@ -25,7 +25,7 @@ const db = mongoClient.db()
 
 //schemas
 
-const participantsSchemas = Joi.object({ name: Joi.string().required() })
+const participantSchemas = Joi.object({ name: Joi.string().required() })
 const messageSchemas = Joi.object({
     from: Joi.string().required(),
     to: Joi.string().required(),
@@ -37,12 +37,12 @@ const messageSchemas = Joi.object({
 app.post("/participants", async (req, res) => {
     const { name } = req.body
 
-    const validation = participantsSchemas.validate(req.body, { abortEarly: false })
+    const validation = participantSchemas.validate(req.body, { abortEarly: false })
     if (validation.error) {
         return res.status(422).send(validation.error.datails.map(detail => detail.message))
     }
     try {
-        const participants = await db.collection('participants').findOne({ name })
+        const participants = await db.collection('participants').findOne({   })
         if (participants) return res.sendStatus(409)
 
         const timesTamp = Date.now()
@@ -161,9 +161,9 @@ setInterval(async () => {
                 }
             }
             )
-        }
             await db.collection('messages').insertMany(messages)
             await db.collection('participants').deleteMany({ lastStatus: { $lt: tenSecondsAgo } })
+        }
     } catch (err) {
             console.log(err)
         //se usa console.log() em vez de req/res pq não é uma requisição/endPoint e sim uma função comum
