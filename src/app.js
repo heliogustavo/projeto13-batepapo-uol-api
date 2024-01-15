@@ -84,9 +84,9 @@ app.post("/messages", async (req, res) => {
 
     try {
         const participant = await db.collection('participants').findOne({ name: user })
-        if(!participant) return res.sendStatus(422)
+        if (!participant) return res.sendStatus(422)
 
-        const message = { from: user, to, text, type, time: dayjs().format('HH:mm:ss')}
+        const message = { from: user, to, text, type, time: dayjs().format('HH:mm:ss') }
         await db.collection('messages').insertOne(message)
         res.sendStatus(201)
 
@@ -96,26 +96,51 @@ app.post("/messages", async (req, res) => {
 })
 
 app.get("/messages", async (req, res) => {
-    const {user} = req.headers
-    const {limit} = req.query
+    const { user } = req.headers
+    const { limit } = req.query
     const numLimit = Number(limit)
 
-    if(limit !== undefined && (numLimit<=0 || isNaN(numLimit))) return res.sendStatus(422)
+    if (limit !== undefined && (numLimit <= 0 || isNaN(numLimit))) return res.sendStatus(422)
 
-    try{
+    try {
         const messages = await db.collection('messages')
-        //isso funciona como um IF, onde cada case dentro do "$or" validará a renderização da mensagem expecifica
-        .find({ $or: [ {from: user}, {to: user}, {type: "message"}, {to: "Todos"}]})
-        .sort({time: -1})
-        .limit(limit === undefined ? 0 : numLimit) 
-        .toArray()
+            //isso funciona como um IF, onde cada case dentro do "$or" validará a renderização da mensagem expecifica
+            .find({ $or: [{ from: user }, { to: user }, { type: "message" }, { to: "Todos" }] })
+            .sort({ time: -1 })
+            .limit(limit === undefined ? 0 : numLimit)
+            .toArray()
 
         res.send(messages)
-    }catch(err){
+    } catch (err) {
         res.status(500).send(err.message)
     }
 })
 
+app.get("/status", async (req, res) => {
+    const { user } = req.headers
+
+    if (!user) return res.sendStatus(404)
+
+    try {
+        const participant = await db.collection('participants').findOne({ name: user })
+        if (!participant) return res.sendStatus(404)
+        //em updateOne() recebe-se duas coisas: #Qual item do DB vc quer atualizar e #Como e O que vc quer modificar/Atribuir nele.
+        const result = await db.collection('participants').updateOne(
+            { name: user }, {$set: {lastStatus: Date.now()}}
+        )
+        // O updateOne() também possiu uma propriedade que conta quantos itens foram  
+        // modificados: result.matchedCount. Então você não precisa criar uma nova solicitação  
+        // somente para ver se o usuário existe, basta somente saber se ao tentar atualizar um   
+        // item no DB, algo foi ou não modificado. Se nada for modificado, o contador será 0 
+        // e retornará o erro(404) 
+        if(result.matchedCount === 0)  return res.sendStatus(404)
+
+        res.sendStatus(200)
+
+    } catch (err) {
+        res.status(500).send(err.message)
+    }
+})
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
