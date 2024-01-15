@@ -42,7 +42,7 @@ app.post("/participants", async (req, res) => {
         return res.status(422).send(validation.error.datails.map(detail => detail.message))
     }
     try {
-        const participants = await db.collection('participants').findOne({   })
+        const participants = await db.collection('participants').findOne({ name })
         if (participants) return res.sendStatus(409)
 
         const timesTamp = Date.now()
